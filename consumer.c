@@ -175,7 +175,7 @@ int main (int argc, char **argv) {
             sprintf(payload, "%s", (char *)consumer_message->payload);
             int count = 0;
             for(int i=0; payload[i] != '\0'; i++){
-                if((payload[i] == ' ' || payload[i+1] == '\0') && count != 0){
+                if((payload[i] == ' ' || payload[i+1] == '\0' || payload[i] == '\n') && count != 0){
                     if(count >= 6){
                         count_words[2]++;
                     } else {

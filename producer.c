@@ -73,12 +73,12 @@ int send_message_to_broker(char *config_file, char *input_file){
      if (NULL == ptr) {
         printf("file can't be opened \n");
     }
-    interactions = fileSize/WORDS_QTT;
     // Send file info to workers
-    for (int i = 0; i < interactions; i++) {
+    int i=0;
+    while(fgets(str, WORDS_QTT, ptr) != NULL){
+        printf("str %d: %s\n", i, str);
         char key[10];
-        sprintf(key, "abc_%d", i);
-        fgets(str, WORDS_QTT, ptr);
+        sprintf(key, "abc_%d", i++);
         size_t key_len = strlen(key);
         size_t value_len = strlen(str);
         char specific_topic[30];
@@ -102,6 +102,7 @@ int send_message_to_broker(char *config_file, char *input_file){
 
         rd_kafka_poll(producer, 0);
     }
+    interactions = i;
     fclose(ptr);
 
 
