@@ -76,7 +76,6 @@ int send_message_to_broker(char *config_file, char *input_file){
     // Send file info to workers
     int i=0;
     while(fgets(str, WORDS_QTT, ptr) != NULL){
-        printf("str %d: %s\n", i, str);
         char key[10];
         sprintf(key, "abc_%d", i++);
         size_t key_len = strlen(key);

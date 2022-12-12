@@ -1,9 +1,11 @@
 # PSPD-Lab2
 ## Pré requisitos
-- Estar uma máquina linux
-- Ter o C instalado na sua máquina
-- Ter o kafka instalado na sua máquina
-- Ter o libglib2.0 instalado na sua máquina
+- Estar em uma máquina linux
+- Instalar as seguintes dependencias:
+    - [librdkafka](https://github.com/edenhill/librdkafka)
+    - [pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config/)
+    - [libc](https://www.gnu.org/software/libc/)
+    - [libglib-2.0.0](https://zoomadmin.com/HowToInstall/UbuntuPackage/libglib2.0-0)
 ## Como rodar
 1. Gerar os arquivos executáveis dos producers e consumers com o seguinte comando:
 ```
