@@ -88,6 +88,70 @@ int consume_message_from_broker(char *config_file, char *topic, char *payload, i
     return 0;
 }
 
-int send_message_to_broker(char *config_file, char *topic, char *payload, int maxRecivedMessages){
+int send_message_to_broker(char *config_file, char *topic, char *payload){
+    rd_kafka_t *producer;
+    rd_kafka_conf_t *conf;
+    char errstr[512];
 
+    config_file = argv[1];
+
+    g_autoptr(GError) error = NULL;
+    g_autoptr(GKeyFile) key_file = g_key_file_new();
+    if (!g_key_file_load_from_file (key_file, config_file, G_KEY_FILE_NONE, &error)) {
+        g_error ("Error loading config file: %s", error->message);
+        return 1;
+    }
+
+    // Load the relevant configuration sections.
+    conf = rd_kafka_conf_new();
+    load_config_group(conf, key_file, "default");
+
+    // Install a delivery-error callback.
+    rd_kafka_conf_set_dr_msg_cb(conf, dr_msg_cb);
+
+    // Create the Producer instance.
+    producer = rd_kafka_new(RD_KAFKA_PRODUCER, conf, errstr, sizeof(errstr));
+    if (!producer) {
+        g_error("Failed to create new producer: %s", errstr);
+        return 1;
+    }
+
+    // Configuration object is now owned, and freed, by the rd_kafka_t instance.
+    conf = NULL;
+
+    char key[64];
+    sprintf(key, "%s_key", topic);
+    size_t key_len = strlen(key);
+    size_t value_len = strlen(payload);
+
+    rd_kafka_resp_err_t err;
+
+    err = rd_kafka_producev(producer,
+                            RD_KAFKA_V_TOPIC(topic),
+                            RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY),
+                            RD_KAFKA_V_KEY((void*)key, key_len),
+                            RD_KAFKA_V_VALUE((void*)payload, value_len),
+                            RD_KAFKA_V_OPAQUE(NULL),
+                            RD_KAFKA_V_END);
+
+    if (err) {
+        g_error("Failed to produce to topic %s: %s", topic, rd_kafka_err2str(err));
+        return 1;
+    } else {
+        g_message("Produced event to topic %s: key = %12s payload = %12s", topic, key, payload);
+    }
+
+    rd_kafka_poll(producer, 0);
+
+    // Block until the messages are all sent.
+    g_message("Flushing final messages..");
+    rd_kafka_flush(producer, 10 * 1000);
+
+    if (rd_kafka_outq_len(producer) > 0) {
+        g_error("%d message(s) were not delivered", rd_kafka_outq_len(producer));
+    }
+
+    rd_kafka_destroy(producer);
+
+    return 0;
 }
