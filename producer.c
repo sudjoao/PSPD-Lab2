@@ -7,6 +7,8 @@
 #include <sys/stat.h>
 struct stat st;
 
+#define WORDS_QTT 1000
+
 #include "common.c"
 static volatile sig_atomic_t run = 1;
 
@@ -14,6 +16,7 @@ static void stop(int sig) {
     run = 0;
 }
 int results[3] = {0, 0, 0};
+int interactions;
 #define ARR_SIZE(arr) ( sizeof((arr)) / sizeof((arr[0])) )
 
 /* Optional per-message delivery callback (triggered by poll() or flush())
@@ -63,22 +66,19 @@ int send_message_to_broker(char *config_file, char *input_file){
     // Get input file info
     stat(input_file, &st);
     int fileSize = st.st_size;
-    char *str;
+    char str[WORDS_QTT];
     FILE* ptr;
 
     ptr = fopen(input_file, "a+");
-
-    int workersQtt = 6;
      if (NULL == ptr) {
         printf("file can't be opened \n");
     }
-
-    str = malloc((fileSize/workersQtt) + 1);
+    interactions = fileSize/WORDS_QTT;
     // Send file info to workers
-    for (int i = 0; i < workersQtt; i++) {
+    for (int i = 0; i < interactions; i++) {
         char key[10];
         sprintf(key, "abc_%d", i);
-        fgets(str, fileSize/workersQtt, ptr);
+        fgets(str, WORDS_QTT, ptr);
         size_t key_len = strlen(key);
         size_t value_len = strlen(str);
         char specific_topic[30];
@@ -113,7 +113,7 @@ int send_message_to_broker(char *config_file, char *input_file){
         g_error("%d message(s) were not delivered", rd_kafka_outq_len(producer));
     }
 
-    g_message("%d events were produced to topic %s.", workersQtt, topic);
+    g_message("%d events were produced to topic %s.", fileSize/WORDS_QTT, topic);
 
     rd_kafka_destroy(producer);
     return 0;
@@ -209,11 +209,9 @@ void received_message_callback(char* receivedMessage){
     for(int i=0; i<strlen(receivedMessage); i++){
         if(receivedMessage[i] == ':'){
             initNumber = i+2;
-            // printf("Pos inicial: %d, número na pos: %c\n", initNumber, receivedMessage[initNumber]);
         } else if(receivedMessage[i] == ','){
             char tmp[8];
             finishNumber = i-1;
-            // printf("Pos final: %d, número na pos: %c\n", finishNumber, receivedMessage[finishNumber]);
             int size = finishNumber - initNumber + 1;
             memcpy(tmp, &receivedMessage[initNumber], size);
             tmp[size] = '\0';
@@ -231,7 +229,7 @@ int main (int argc, char **argv) {
     }
     send_message_to_broker(argv[1], argv[2]);
     char payload[512];
-    consume_message_from_broker(argv[1], "answers", payload, 6, received_message_callback);
+    consume_message_from_broker(argv[1], "answers", payload, interactions, received_message_callback);
     printf("O arquivo possui %d palavras e %d tem menos que 6 caracteres e %d possem 6 ou mais\n", results[0], results[1], results[2]);
     return 0;
 }

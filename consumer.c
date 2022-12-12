@@ -98,14 +98,14 @@ int main (int argc, char **argv) {
     char *payload;
 
     // Parse the command line.
-    if (argc != 3) {
+    if (argc != 2) {
         g_error("Usage: %s <config.ini>", argv[0]);
         return 1;
     }
 
     // Parse the configuration.
     // See https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md
-    const char *config_file = argv[1];
+    char *config_file = argv[1];
 
     g_autoptr(GError) error = NULL;
     g_autoptr(GKeyFile) key_file = g_key_file_new();
@@ -131,9 +131,8 @@ int main (int argc, char **argv) {
     conf = NULL;
 
     // Convert the list of topics to a format suitable for librdkafka.
-    char* topicNumber = argv[2];
     char topic[20];
-    sprintf(topic, "words_%s", topicNumber);
+    sprintf(topic, "words");
 
     rd_kafka_topic_partition_list_t *subscription = rd_kafka_topic_partition_list_new(1);
     rd_kafka_topic_partition_list_add(subscription, topic, RD_KAFKA_PARTITION_UA);
@@ -174,10 +173,8 @@ int main (int argc, char **argv) {
         } else {
             payload = malloc(strlen((char *)consumer_message->payload)+1);
             sprintf(payload, "%s", (char *)consumer_message->payload);
-            printf("Payload: %s\n", payload);
             int count = 0;
             for(int i=0; payload[i] != '\0'; i++){
-                printf("%d\n", i);
                 if((payload[i] == ' ' || payload[i+1] == '\0') && count != 0){
                     if(count >= 6){
                         count_words[2]++;
